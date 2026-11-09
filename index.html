@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CURI TELUR – EARTH BATTLE | Game Edukasi 3D IPAS Kelas VI</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --font-game: 'Fredoka', sans-serif;
+            --font-ui: 'Plus Jakarta Sans', sans-serif;
+        }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0b1120;
+            font-family: var(--font-ui);
+        }
+        .font-game {
+            font-family: var(--font-game);
+            letter-spacing: 0.02em;
+        }
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            z-index: 1;
+        }
+        /* Roblox-style 3D Beveled Buttons */
+        .btn-roblox {
+            position: relative;
+            transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.35), 0 10px 20px rgba(0,0,0,0.25);
+            transform: translateY(0);
+        }
+        .btn-roblox:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.35), 0 14px 24px rgba(0,0,0,0.3);
+        }
+        .btn-roblox:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.35), 0 4px 10px rgba(0,0,0,0.2);
+        }
+        /* Glass Panel */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+        /* Animations */
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.6)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 18px rgba(250, 204, 21, 0.95)); }
+        }
+        .animate-glow {
+            animation: pulseGlow 2.2s infinite ease-in-out;
+        }
+        /* Custom Scrollbar for Modals */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(96, 165, 250, 0.6);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(96, 165, 250, 0.9);
+        }
+        /* Virtual Joysticks */
+        #joystick-zone-red, #joystick-zone-blue {
+            touch-action: none;
+        }
+        .console-pad-btn {
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+<body class="text-white antialiased">
+
+    <!-- 3D GAME CANVAS -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- FIREWORKS OVERLAY CANVAS FOR VICTORY -->
+    <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-40 hidden"></canvas>
+
+    <!-- ==========================================
+         1. MAIN MENU OVERLAY (HALAMAN AWAL)
+    =========================================== -->
+    <div id="main-menu" class="fixed inset-0 z-30 flex flex-col justify-between p-4 sm:p-6 overflow-y-auto bg-gradient-to-b from-slate-950/80 via-slate-900/55 to-slate-950/90">
+        <!-- Top Bar: Connection Status & Quick Audio -->
+        <div class="flex flex-wrap items-center justify-between gap-2 max-w-6xl w-full mx-auto">
+            <div class="flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3.5 py-2 rounded-2xl shadow-lg">
+                <span id="net-status-dot" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="net-status-text" class="text-xs sm:text-sm font-bold text-slate-200">Mode Arena Aktif</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openModal('modal-soal')" class="btn-roblox bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-game font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-check"></i> 15 SOAL & KUNCI
+                </button>
+                <button onclick="openModal('modal-materi')" class="btn-roblox bg-amber-500 hover:bg-amber-400 text-slate-950 font-game font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-book-atlas"></i> MATERI IPAS
+                </button>
+                <button onclick="openModal('modal-cara')" class="btn-roblox bg-sky-500 hover:bg-sky-400 text-slate-950 font-game font-bold px-4 py-2 rounded-xl text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-gamepad"></i> CARA BERMAIN
+                </button>
+                <button onclick="openModal('modal-audio')" class="btn-roblox bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-game font-bold px-3.5 py-2 rounded-xl text-sm flex items-center gap-2" title="Pengaturan Suara">
+                    <i id="menu-audio-icon" class="fa-solid fa-volume-high text-emerald-400"></i>
+                    <span class="hidden sm:inline">SUARA</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Center Hero & Setup Card -->
+        <div class="my-auto py-4 max-w-5xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            
+            <!-- Left Column: Game Logo & Info -->
+            <div class="lg:col-span-7 text-center lg:text-left space-y-4">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 text-xs sm:text-sm font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-earth-asia text-sky-400 animate-spin" style="animation-duration: 10s;"></i>
+                    Game Edukasi 3D IPAS Kelas VI SD
+                </div>
+                
+                <h1 class="font-game text-4xl sm:text-6xl font-extrabold tracking-tight leading-none drop-shadow-[0_6px_0_rgba(0,0,0,0.6)]">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-sky-400">CURI TELUR</span><br>
+                    <span class="text-white text-3xl sm:text-5xl">🌍 EARTH BATTLE</span>
+                </h1>
+                
+                <p class="text-slate-200 text-sm sm:text-base font-semibold max-w-xl mx-auto lg:mx-0 leading-relaxed bg-slate-900/60 p-3.5 rounded-2xl border border-white/10">
+                    Pertahankan <strong>15 Telur Timmu</strong>, susupi markas lawan, dan jawab soal <strong>Rotasi & Revolusi Bumi</strong> dalam 15 detik untuk merebut telur lawan!
+                </p>
+
+                <!-- Feature Pills -->
+                <div class="grid grid-cols-3 gap-2.5 max-w-lg mx-auto lg:mx-0 pt-1">
+                    <div class="bg-red-500/20 border-2 border-red-500/50 rounded-2xl p-2.5 text-center">
+                        <div class="text-red-400 font-game text-lg sm:text-xl font-bold">15 vs 15</div>
+                        <div class="text-[11px] text-slate-300 font-semibold">30 Telur Warna-Warni</div>
+                    </div>
+                    <div class="bg-amber-500/20 border-2 border-amber-500/50 rounded-2xl p-2.5 text-center">
+                        <div class="text-amber-300 font-game text-lg sm:text-xl font-bold">15 Soal</div>
+                        <div class="text-[11px] text-slate-300 font-semibold">Asesmen IPAS Kelas VI</div>
+                    </div>
+                    <div class="bg-sky-500/20 border-2 border-sky-500/50 rounded-2xl p-2.5 text-center">
+                        <div class="text-sky-300 font-game text-lg sm:text-xl font-bold">Skor 100</div>
+                        <div class="text-[11px] text-slate-300 font-semibold">Pedoman Nilai Guru</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Player & Match Lobby Configuration -->
+            <div class="lg:col-span-5 glass-panel rounded-3xl p-5 sm:p-6 shadow-2xl border-2 border-white/20 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                    <div>
+                        <h2 class="font-game text-xl sm:text-2xl text-white">MASUK ARENA 3D</h2>
+                        <p class="text-xs text-slate-400">Atur identitas karakter & tim sebelum bertanding</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-xl">
+                        🎮
+                    </div>
+                </div>
+
+                <!-- Player Name Input -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        <i class="fa-solid fa-user-astronaut text-amber-400 mr-1"></i> Nama Siswa / Pemain
+                    </label>
+                    <input id="input-player-name" type="text" maxlength="16" placeholder="Contoh: Budi Kelas 6A" value="Kapten Bumi"
+                        class="w-full bg-slate-900/90 border-2 border-slate-700 focus:border-amber-400 rounded-xl px-3.5 py-2.5 text-white font-bold text-sm outline-none transition">
+                </div>
+
+                <!-- Match Setup -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                            <i class="fa-solid fa-door-open text-sky-400 mr-1"></i> Kode Ruang Kelas
+                        </label>
+                        <input id="input-room-code" type="text" maxlength="12" value="KELAS6"
+                            class="w-full bg-slate-900/90 border-2 border-slate-700 focus:border-sky-400 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold text-sm uppercase outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                            <i class="fa-solid fa-robot text-emerald-400 mr-1"></i> Bantuan Bot Tim
+                        </label>
+                        <select id="select-bot-mode" class="w-full bg-slate-900/90 border-2 border-slate-700 focus:border-emerald-400 rounded-xl px-2.5 py-2 text-white font-bold text-xs sm:text-sm outline-none">
+                            <option value="full" selected>Aktif (Bot Menyusup & Menjaga)</option>
+                            <option value="none">Tanpa Bot (Murni Pemain)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Team Selection -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                        <i class="fa-solid fa-flag text-rose-400 mr-1"></i> Pilih Tim Pertahananmu
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-pick-red" onclick="selectTeam('red')"
+                            class="team-pick-btn relative overflow-hidden rounded-2xl p-3.5 border-4 border-red-500 bg-gradient-to-br from-red-600/80 to-rose-900/80 text-left transition transform scale-[1.02] shadow-lg">
+                            <div class="flex items-center justify-between">
+                                <span class="font-game text-lg font-bold text-white">TIM MERAH</span>
+                                <span class="w-6 h-6 rounded-full bg-white text-red-600 flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-check"></i></span>
+                            </div>
+                            <p class="text-[11px] text-red-100 mt-1 font-medium">Markas Barat • 15 Telur Surya</p>
+                        </button>
+
+                        <button type="button" id="btn-pick-blue" onclick="selectTeam('blue')"
+                            class="team-pick-btn relative overflow-hidden rounded-2xl p-3.5 border-2 border-slate-700 bg-slate-800/70 hover:bg-blue-950/60 text-left transition opacity-80">
+                            <div class="flex items-center justify-between">
+                                <span class="font-game text-lg font-bold text-sky-300">TIM BIRU</span>
+                                <span class="w-6 h-6 rounded-full bg-slate-700 text-slate-400 flex items-center justify-center font-bold text-xs"><i class="fa-solid fa-check"></i></span>
+                            </div>
+                            <p class="text-[11px] text-slate-300 mt-1 font-medium">Markas Timur • 15 Telur Samudra</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- View Mode Selection: 2 Tampilan (Split Screen) vs 1 Tampilan -->
+                <div class="bg-slate-900/90 border-2 border-indigo-500/40 rounded-2xl p-3">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-indigo-300 mb-1.5">
+                        <i class="fa-solid fa-table-columns text-amber-400 mr-1"></i> Mode Tampilan Layar Tim
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btn-view-split" onclick="selectViewMode('split')"
+                            class="py-2 px-3 rounded-xl font-game font-bold text-xs sm:text-sm border-2 border-amber-400 bg-indigo-600 text-white shadow">
+                            🖥️ 2 TAMPILAN (Merah vs Biru)
+                        </button>
+                        <button type="button" id="btn-view-single" onclick="selectViewMode('single')"
+                            class="py-2 px-3 rounded-xl font-game font-bold text-xs sm:text-sm border border-slate-700 bg-slate-800 text-slate-300">
+                            👤 1 TAMPILAN PENUH
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Start Match Button -->
+                <button onclick="startGameMatch()" class="btn-roblox w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-game text-xl sm:text-2xl font-extrabold py-3.5 rounded-2xl flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-play"></i> MULAI BERMAIN SEKARANG!
+                </button>
+            </div>
+        </div>
+
+        <!-- Bottom Bar: Quick Info -->
+        <div class="text-center text-xs text-slate-400 max-w-4xl mx-auto">
+            <strong>Mode 2 Tampilan:</strong> Layar Kiri = <strong>TIM MERAH (WASD + E/F/Spasi)</strong> • Layar Kanan = <strong>TIM BIRU (Panah + Enter/K/L)</strong>.
+        </div>
+    </div>
+
+    <!-- ==========================================
+         2. IN-GAME HUD (HEADS UP DISPLAY)
+    =========================================== -->
+    <div id="game-hud" class="fixed inset-0 pointer-events-none z-20 hidden flex flex-col justify-between p-2.5 sm:p-4">
+
+        <!-- SPLIT-SCREEN DIVIDER & 2-TEAM DISTINCT FRAMES -->
+        <div id="split-screen-frame" class="fixed inset-0 pointer-events-none z-10 flex">
+            <!-- Left Frame: TIM MERAH -->
+            <div class="w-1/2 h-full border-4 border-red-500/85 rounded-l-2xl relative shadow-[inset_0_0_35px_rgba(239,68,68,0.28)]">
+                <div class="absolute top-24 left-3 bg-gradient-to-r from-red-700 to-amber-600 text-white font-game font-bold text-[11px] sm:text-xs px-3 py-1 rounded-full border border-yellow-300 shadow-lg flex items-center gap-1.5">
+                    <span>👑 LAYAR 1: TIM MERAH</span>
+                    <span class="hidden md:inline text-yellow-200 font-sans text-[10px]">(Konsol Kiri / WASD)</span>
+                </div>
+                <div class="absolute top-36 left-3 flex flex-col gap-1.5 pointer-events-auto">
+                    <div id="red-carrying-pill" class="hidden bg-amber-400 text-slate-950 font-game font-extrabold text-[11px] px-3 py-1 rounded-full border-2 border-white shadow animate-bounce">
+                        🥚 Membawa Telur! Lari ke Markas Barat!
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Divider Line with VS Badge -->
+            <div class="w-1.5 h-full bg-gradient-to-b from-red-500 via-amber-300 to-sky-500 relative flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.9)]">
+                <div class="w-10 h-10 rounded-full bg-slate-950 border-2 border-amber-400 text-amber-300 font-game font-extrabold text-xs flex items-center justify-center shadow-2xl">
+                    VS
+                </div>
+            </div>
+
+            <!-- Right Frame: TIM BIRU -->
+            <div class="w-1/2 h-full border-4 border-sky-400/85 rounded-r-2xl relative shadow-[inset_0_0_35px_rgba(56,189,248,0.28)]">
+                <div class="absolute top-24 right-3 bg-gradient-to-l from-blue-700 to-cyan-500 text-white font-game font-bold text-[11px] sm:text-xs px-3 py-1 rounded-full border border-cyan-200 shadow-lg flex items-center gap-1.5">
+                    <span class="hidden md:inline text-cyan-100 font-sans text-[10px]">(Konsol Kanan / Panah)</span>
+                    <span>🚀 LAYAR 2: TIM BIRU</span>
+                </div>
+                <div class="absolute top-36 right-3 flex flex-col items-end gap-1.5 pointer-events-auto">
+                    <button id="btn-blue-autopilot" onclick="toggleBlueAutoPilot()" class="bg-slate-900/90 hover:bg-slate-800 text-cyan-300 border border-cyan-400/60 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow">
+                        🎮 Konsol 2 Manual (Klik untuk Auto-Bot)
+                    </button>
+                    <div id="blue-carrying-pill" class="hidden bg-cyan-400 text-slate-950 font-game font-extrabold text-[11px] px-3 py-1 rounded-full border-2 border-white shadow animate-bounce">
+                        🥚 Membawa Telur! Lari ke Markas Timur!
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Top Scoreboard & Timer Bar -->
+        <div class="w-full max-w-6xl mx-auto flex flex-col gap-2 pointer-events-auto relative z-20">
+            <div class="grid grid-cols-12 gap-2 items-center">
+                
+                <!-- TIM MERAH SCORE PANEL -->
+                <div class="col-span-4 sm:col-span-4 bg-gradient-to-r from-red-950/95 via-red-900/90 to-slate-900/90 border-2 border-red-500/80 rounded-2xl p-2 sm:px-4 sm:py-2.5 shadow-xl flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+                            <span class="font-game text-xs sm:text-base text-red-300 font-bold">TIM MERAH</span>
+                        </div>
+                        <div class="text-[10px] sm:text-xs text-slate-300 mt-0.5 flex flex-wrap gap-x-2">
+                            <span>Dijaga: <strong id="hud-red-kept" class="text-white">15</strong></span>
+                            <span>Dicuri: <strong id="hud-red-stolen" class="text-amber-300">0</strong></span>
+                            <span class="hidden md:inline">Benar: <strong id="hud-red-correct" class="text-emerald-300">0</strong></span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div id="hud-red-total" class="font-game text-2xl sm:text-4xl font-extrabold text-white drop-shadow">15</div>
+                        <div class="text-[9px] uppercase tracking-wider text-red-200 font-bold">Total Telur</div>
+                    </div>
+                </div>
+
+                <!-- CENTER TIMER & MATCH CONTROLS -->
+                <div class="col-span-4 sm:col-span-4 flex flex-col items-center justify-center">
+                    <div id="timer-box" class="glass-panel px-4 py-1.5 sm:px-6 sm:py-2 rounded-2xl border-2 border-amber-400/70 shadow-2xl text-center w-full max-w-[200px]">
+                        <div class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest text-amber-300 flex items-center justify-center gap-1">
+                            <i class="fa-regular fa-clock"></i> SISA WAKTU
+                        </div>
+                        <div id="hud-timer" class="font-game text-xl sm:text-3xl font-extrabold text-white tracking-wider">10:00</div>
+                    </div>
+                    <!-- Quick Utility Buttons -->
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <button onclick="toggleSplitViewInGame()" id="btn-hud-viewmode" class="bg-indigo-600 hover:bg-indigo-500 text-white border border-amber-300 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-table-columns"></i> <span id="lbl-hud-viewmode">2 Layar</span>
+                        </button>
+                        <button onclick="openModal('modal-soal')" class="bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-list-check"></i> <span class="hidden sm:inline">15 Soal</span>
+                        </button>
+                        <button onclick="toggleFastForwardTimer()" class="bg-slate-900/90 hover:bg-slate-800 text-sky-300 border border-sky-500/40 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow" title="Uji Menit Terakhir / Selesaikan">
+                            <i class="fa-solid fa-forward-fast"></i> <span id="btn-ff-label" class="hidden sm:inline">Ke 1 Menit</span>
+                        </button>
+                        <button onclick="returnToMenu()" class="bg-slate-900/90 hover:bg-rose-950 text-rose-300 border border-rose-500/40 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold shadow" title="Menu Utama">
+                            <i class="fa-solid fa-house"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TIM BIRU SCORE PANEL -->
+                <div class="col-span-4 sm:col-span-4 bg-gradient-to-l from-blue-950/95 via-blue-900/90 to-slate-900/90 border-2 border-sky-500/80 rounded-2xl p-2 sm:px-4 sm:py-2.5 shadow-xl flex items-center justify-between flex-row-reverse sm:flex-row">
+                    <div class="text-left">
+                        <div id="hud-blue-total" class="font-game text-2xl sm:text-4xl font-extrabold text-white drop-shadow">15</div>
+                        <div class="text-[9px] uppercase tracking-wider text-sky-200 font-bold">Total Telur</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <span class="font-game text-xs sm:text-base text-sky-300 font-bold">TIM BIRU</span>
+                            <span class="w-3 h-3 rounded-full bg-sky-400 animate-ping"></span>
+                        </div>
+                        <div class="text-[10px] sm:text-xs text-slate-300 mt-0.5 flex flex-wrap justify-end gap-x-2">
+                            <span class="hidden md:inline">Benar: <strong id="hud-blue-correct" class="text-emerald-300">0</strong></span>
+                            <span>Dicuri: <strong id="hud-blue-stolen" class="text-amber-300">0</strong></span>
+                            <span>Dijaga: <strong id="hud-blue-kept" class="text-white">15</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="one-minute-banner" class="hidden bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-slate-950 font-game font-extrabold text-xs sm:text-base py-1.5 px-4 rounded-xl text-center shadow-lg animate-bounce">
+                ⚠️ 1 MENIT LAGI! SEGERA SELAMATKAN TELURMU! ⚠️
+            </div>
+
+            <div id="live-toast" class="mx-auto bg-slate-900/90 border border-white/20 px-4 py-1.5 rounded-full text-xs sm:text-sm font-bold text-amber-300 shadow-lg transition-all duration-300">
+                🌍 Selamat datang di Arena Earth Battle!
+            </div>
+        </div>
+
+        <!-- Middle Contextual Action Prompts -->
+        <div class="my-auto flex flex-col items-center justify-center pointer-events-none space-y-2 relative z-30">
+            <div id="carrying-badge" class="hidden pointer-events-auto bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-game font-extrabold px-5 py-2 rounded-full shadow-2xl border-2 border-white flex items-center gap-2 animate-bounce">
+                <i class="fa-solid fa-egg text-xl"></i>
+                <span id="carrying-text">MEMBAWA TELUR LAWAN! Bawa ke Markasmu!</span>
+            </div>
+
+            <div id="shield-badge" class="hidden bg-cyan-500/90 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i> Masa Perlindungan Aktif (<span id="shield-time">4</span>d)
+            </div>
+
+            <button id="prompt-steal-btn" onclick="triggerEggInteraction()" class="hidden pointer-events-auto btn-roblox bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-game font-extrabold px-6 py-3 rounded-2xl text-base sm:text-lg border-2 border-white flex items-center gap-2.5 animate-glow">
+                <i class="fa-solid fa-hand-sparkles text-xl"></i>
+                <span id="prompt-steal-label">AMBIL TELUR (Tekan E)</span>
+            </button>
+
+            <button id="prompt-tag-btn" onclick="triggerTagThief()" class="hidden pointer-events-auto btn-roblox bg-gradient-to-r from-rose-500 to-red-600 text-white font-game font-extrabold px-6 py-3 rounded-2xl text-base sm:text-lg border-2 border-white flex items-center gap-2.5">
+                <i class="fa-solid fa-bolt text-xl text-amber-300"></i>
+                <span id="prompt-tag-label">TANGKAP PENCURI! (Tekan F)</span>
+            </button>
+        </div>
+
+        <!-- BOTTOM DUAL CONSOLES & RADAR MAP -->
+        <div class="w-full max-w-7xl mx-auto grid grid-cols-12 items-end gap-2 pointer-events-none pb-1 relative z-20">
+            <!-- KONSOL 1: TIM MERAH -->
+            <div class="col-span-5 flex items-end justify-between gap-2 bg-gradient-to-r from-red-950/90 via-slate-900/90 to-slate-900/80 border-2 border-red-500/80 rounded-2xl p-2 sm:p-2.5 pointer-events-auto shadow-2xl">
+                <div class="flex items-center gap-2">
+                    <div id="joystick-zone-red" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-950/90 border-2 border-red-400/70 shadow-inner flex items-center justify-center shrink-0">
+                        <div class="absolute inset-1.5 rounded-full border border-dashed border-red-400/30 pointer-events-none"></div>
+                        <div id="joystick-knob-red" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-red-500 to-amber-500 shadow-lg border-2 border-white flex items-center justify-center text-white text-xs font-bold pointer-events-none transition-transform duration-75">
+                            <i class="fa-solid fa-arrows-up-down-left-right"></i>
+                        </div>
+                    </div>
+                    <div class="hidden md:grid grid-cols-3 gap-1 w-20 h-20 items-center justify-items-center">
+                        <div></div>
+                        <button onpointerdown="setConsoleDir('red', 0, -1)" onpointerup="setConsoleDir('red', 0, 0)" onpointerleave="setConsoleDir('red', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-red-800 hover:bg-red-600 border border-red-400 text-[10px] font-bold">W</button>
+                        <div></div>
+                        <button onpointerdown="setConsoleDir('red', -1, 0)" onpointerup="setConsoleDir('red', 0, 0)" onpointerleave="setConsoleDir('red', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-red-800 hover:bg-red-600 border border-red-400 text-[10px] font-bold">A</button>
+                        <div class="w-2 h-2 rounded-full bg-red-400"></div>
+                        <button onpointerdown="setConsoleDir('red', 1, 0)" onpointerup="setConsoleDir('red', 0, 0)" onpointerleave="setConsoleDir('red', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-red-800 hover:bg-red-600 border border-red-400 text-[10px] font-bold">D</button>
+                        <div></div>
+                        <button onpointerdown="setConsoleDir('red', 0, 1)" onpointerup="setConsoleDir('red', 0, 0)" onpointerleave="setConsoleDir('red', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-red-800 hover:bg-red-600 border border-red-400 text-[10px] font-bold">S</button>
+                        <div></div>
+                    </div>
+                </div>
+                <div class="hidden xl:flex flex-col text-[10px] text-slate-300 leading-tight px-1">
+                    <span class="font-game text-red-400 font-bold text-xs">🎮 KONSOL 1 (MERAH)</span>
+                    <span id="hud-player-name" class="text-white font-bold truncate">Kapten Merah</span>
+                    <span id="hud-zone-name" class="text-amber-300 font-semibold">Markas Barat</span>
+                    <div class="flex gap-2 mt-0.5">
+                        <span class="text-emerald-400 font-bold">✓<span id="hud-my-correct">0</span></span>
+                        <span class="text-rose-400 font-bold">✗<span id="hud-my-wrong">0</span></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onpointerdown="triggerTagThief('red')" class="btn-roblox w-11 h-12 sm:w-13 sm:h-14 rounded-xl bg-gradient-to-br from-rose-600 to-red-800 border border-rose-300 text-white flex flex-col items-center justify-center shadow">
+                        <i class="fa-solid fa-shield-halved text-sm sm:text-base"></i>
+                        <span class="text-[8px] font-extrabold mt-0.5">JAGA (F)</span>
+                    </button>
+                    <button onpointerdown="triggerEggInteraction('red')" class="btn-roblox w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 border-2 border-yellow-200 text-slate-950 flex flex-col items-center justify-center shadow">
+                        <i class="fa-solid fa-egg text-sm sm:text-base"></i>
+                        <span class="text-[8px] font-extrabold mt-0.5">AMBIL (E)</span>
+                    </button>
+                    <button onpointerdown="triggerJump('red')" class="btn-roblox w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-red-500 to-amber-600 border-2 border-amber-200 text-white flex flex-col items-center justify-center shadow">
+                        <i class="fa-solid fa-person-arrow-up-from-line text-sm sm:text-base"></i>
+                        <span class="text-[8px] font-extrabold mt-0.5">LOMPAT</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SHARED RADAR MAP -->
+            <div class="col-span-2 flex flex-col items-center justify-end pointer-events-auto">
+                <div class="bg-slate-950/95 border-2 border-amber-400 rounded-2xl p-1.5 shadow-[0_0_25px_rgba(250,204,21,0.35)] w-full flex flex-col items-center">
+                    <div class="text-[9px] sm:text-[10px] font-game font-extrabold text-amber-300 uppercase tracking-wider flex items-center gap-1 mb-1">
+                        <i class="fa-solid fa-map-location-dot text-emerald-400"></i> PETA ARENA
+                    </div>
+                    <canvas id="shared-radar-canvas" width="220" height="120" class="w-full h-16 sm:h-20 rounded-xl border border-slate-700 bg-slate-900"></canvas>
+                    <div class="flex items-center justify-between w-full text-[8px] sm:text-[9px] text-slate-300 font-bold px-1 mt-1">
+                        <span class="text-red-400">🔴 Merah</span>
+                        <span class="text-amber-300">🥚</span>
+                        <span class="text-sky-400">Biru 🔵</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KONSOL 2: TIM BIRU -->
+            <div class="col-span-5 flex items-end justify-between gap-2 bg-gradient-to-l from-blue-950/90 via-slate-900/90 to-slate-900/80 border-2 border-sky-400/80 rounded-2xl p-2 sm:p-2.5 pointer-events-auto shadow-2xl">
+                <div class="flex items-center gap-1.5">
+                    <button onpointerdown="triggerJump('blue')" class="btn-roblox w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 border-2 border-cyan-200 text-white flex flex-col items-center justify-center shadow">
+                        <i class="fa-solid fa-person-arrow-up-from-line text-sm sm:text-base"></i>
+                        <span class="text-[8px] font-extrabold mt-0.5">LOMPAT</span>
+                    </button>
+                    <button onpointerdown="triggerEggInteraction('blue')" class="btn-roblox w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-cyan-300 to-sky-500 border-2 border-white text-slate-950 flex flex-col items-center justify-center shadow">
+                        <i class="fa-solid fa-egg text-sm sm:text-base"></i>
+                        <span class="text-[8px] font-extrabold mt-0.5">AMBIL (K)</span>
+                    </button>
+                    <button onpointerdown="triggerTagThief('blue')" class="btn-roblox w-11 h-12 sm:w-13 sm:h-14 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-800 border border-sky-300 text-white flex flex-col items-center justify-center shadow">
+                        <i class="fa-solid fa-shield-halved text-sm sm:text-base"></i>
+                        <span class="text-[8px] font-extrabold mt-0.5">JAGA (L)</span>
+                    </button>
+                </div>
+                <div class="hidden xl:flex flex-col text-right text-[10px] text-slate-300 leading-tight px-1">
+                    <span class="font-game text-sky-400 font-bold text-xs">🎮 KONSOL 2 (BIRU)</span>
+                    <span id="hud-blue-player-name" class="text-white font-bold truncate">Kapten Biru</span>
+                    <span id="hud-blue-zone-name" class="text-cyan-300 font-semibold">Markas Timur</span>
+                    <span class="text-[9px] text-slate-400">Panah / K/L</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="hidden md:grid grid-cols-3 gap-1 w-20 h-20 items-center justify-items-center">
+                        <div></div>
+                        <button onpointerdown="setConsoleDir('blue', 0, -1)" onpointerup="setConsoleDir('blue', 0, 0)" onpointerleave="setConsoleDir('blue', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-blue-800 hover:bg-blue-600 border border-sky-400 text-[10px] font-bold">▲</button>
+                        <div></div>
+                        <button onpointerdown="setConsoleDir('blue', -1, 0)" onpointerup="setConsoleDir('blue', 0, 0)" onpointerleave="setConsoleDir('blue', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-blue-800 hover:bg-blue-600 border border-sky-400 text-[10px] font-bold">◀</button>
+                        <div class="w-2 h-2 rounded-full bg-sky-400"></div>
+                        <button onpointerdown="setConsoleDir('blue', 1, 0)" onpointerup="setConsoleDir('blue', 0, 0)" onpointerleave="setConsoleDir('blue', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-blue-800 hover:bg-blue-600 border border-sky-400 text-[10px] font-bold">▶</button>
+                        <div></div>
+                        <button onpointerdown="setConsoleDir('blue', 0, 1)" onpointerup="setConsoleDir('blue', 0, 0)" onpointerleave="setConsoleDir('blue', 0, 0)" class="console-pad-btn w-6 h-6 rounded bg-blue-800 hover:bg-blue-600 border border-sky-400 text-[10px] font-bold">▼</button>
+                        <div></div>
+                    </div>
+                    <div id="joystick-zone-blue" class="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-950/90 border-2 border-sky-400/70 shadow-inner flex items-center justify-center shrink-0">
+                        <div class="absolute inset-1.5 rounded-full border border-dashed border-sky-400/30 pointer-events-none"></div>
+                        <div id="joystick-knob-blue" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-600 shadow-lg border-2 border-white flex items-center justify-center text-white text-xs font-bold pointer-events-none transition-transform duration-75">
+                            <i class="fa-solid fa-arrows-up-down-left-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         3. QUIZ MODAL
+    =========================================== -->
+    <div id="quiz-modal" class="fixed inset-0 z-40 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel max-w-xl w-full rounded-3xl p-5 sm:p-7 border-4 border-amber-400 shadow-[0_0_50px_rgba(251,191,36,0.3)] relative overflow-hidden">
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="flex items-center gap-2.5">
+                    <div id="quiz-egg-icon" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-2xl shadow-lg border-2 border-white">🥚</div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <span id="quiz-team-badge" class="text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/30 text-sky-300 border border-sky-400/40">TELUR TIM BIRU</span>
+                        </div>
+                        <h3 id="quiz-egg-title" class="font-game text-lg sm:text-xl text-white mt-0.5">TELUR NOMOR #1</h3>
+                        <p class="text-[11px] text-slate-300 font-semibold">Materi: Rotasi & Revolusi Bumi</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900 border-2 border-amber-400/80 px-4 py-2 rounded-2xl shrink-0">
+                    <i class="fa-solid fa-stopwatch text-amber-400 text-lg animate-spin" style="animation-duration: 3s;"></i>
+                    <span id="quiz-timer-num" class="font-game text-2xl sm:text-3xl font-extrabold text-amber-300">15</span>
+                    <span class="text-xs text-slate-400 font-bold">dtk</span>
+                </div>
+            </div>
+
+            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-3">
+                <div id="quiz-timer-bar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 transition-all duration-1000" style="width: 100%;"></div>
+            </div>
+
+            <div class="bg-slate-900/95 border-2 border-slate-700 rounded-2xl p-4 sm:p-5 mb-4">
+                <p id="quiz-question-text" class="text-base sm:text-lg font-bold text-white leading-relaxed">Pertanyaan?</p>
+            </div>
+
+            <div id="quiz-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4"></div>
+
+            <div id="quiz-feedback-box" class="hidden rounded-2xl p-4 border-2 text-center space-y-2">
+                <div id="quiz-feedback-title" class="font-game text-lg sm:text-xl font-extrabold"></div>
+                <p id="quiz-feedback-desc" class="text-xs sm:text-sm text-slate-200 font-medium"></p>
+                <button onclick="closeQuizModal()" class="btn-roblox mt-2 bg-white text-slate-950 font-game font-extrabold px-6 py-2 rounded-xl text-sm">LANJUTKAN PERMAINAN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         4. VICTORY MODAL
+    =========================================== -->
+    <div id="victory-modal" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-lg flex items-center justify-center p-4 overflow-y-auto">
+        <div class="glass-panel max-w-3xl w-full rounded-3xl p-6 sm:p-8 border-4 border-amber-400 shadow-2xl text-center space-y-6 my-auto">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-bold text-xs uppercase tracking-widest">
+                <i class="fa-solid fa-trophy"></i> WAKTU PERTANDINGAN SELESAI
+            </div>
+            <h2 id="victory-winner-title" class="font-game text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400 drop-shadow">
+                🏆 TIM MERAH MENANG! 🏆
+            </h2>
+            <p id="victory-winner-subtitle" class="text-sm sm:text-base text-slate-300 font-semibold">
+                Kerja sama luar biasa dalam menjaga telur dan menjawab soal IPAS!
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                <!-- Red Card -->
+                <div class="bg-gradient-to-br from-red-950/90 to-slate-900 border-2 border-red-500 rounded-2xl p-4 space-y-2">
+                    <div class="flex items-center justify-between border-b border-red-500/30 pb-2">
+                        <span class="font-game text-xl text-red-400 font-bold">🔴 TIM MERAH</span>
+                        <span id="end-red-score" class="font-game text-3xl font-extrabold text-white">0 Poin</span>
+                    </div>
+                    <div class="text-xs sm:text-sm space-y-1 text-slate-300">
+                        <div class="flex justify-between"><span>Telur Dipertahankan:</span> <strong id="end-red-kept" class="text-white">0 / 15</strong></div>
+                        <div class="flex justify-between"><span>Telur Dicuri:</span> <strong id="end-red-stolen" class="text-amber-300">0 Telur</strong></div>
+                        <div class="flex justify-between"><span>Jawaban B/S:</span> <strong id="end-red-ans" class="text-emerald-300">0 / 0</strong></div>
+                        <div class="flex justify-between"><span>Nilai (Benar/15 × 100):</span> <strong id="end-red-acc" class="text-sky-300">0</strong></div>
+                    </div>
+                </div>
+                <!-- Blue Card -->
+                <div class="bg-gradient-to-br from-blue-950/90 to-slate-900 border-2 border-sky-500 rounded-2xl p-4 space-y-2">
+                    <div class="flex items-center justify-between border-b border-sky-500/30 pb-2">
+                        <span class="font-game text-xl text-sky-400 font-bold">🔵 TIM BIRU</span>
+                        <span id="end-blue-score" class="font-game text-3xl font-extrabold text-white">0 Poin</span>
+                    </div>
+                    <div class="text-xs sm:text-sm space-y-1 text-slate-300">
+                        <div class="flex justify-between"><span>Telur Dipertahankan:</span> <strong id="end-blue-kept" class="text-white">0 / 15</strong></div>
+                        <div class="flex justify-between"><span>Telur Dicuri:</span> <strong id="end-blue-stolen" class="text-amber-300">0 Telur</strong></div>
+                        <div class="flex justify-between"><span>Jawaban B/S:</span> <strong id="end-blue-ans" class="text-emerald-300">0 / 0</strong></div>
+                        <div class="flex justify-between"><span>Nilai (Benar/15 × 100):</span> <strong id="end-blue-acc" class="text-sky-300">0</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+                <button onclick="restartMatch()" class="btn-roblox bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-game font-extrabold px-7 py-3.5 rounded-2xl text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> MAIN LAGI
+                </button>
+                <button onclick="returnToMenu()" class="btn-roblox bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-game font-bold px-6 py-3.5 rounded-2xl text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-house"></i> MENU UTAMA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         5, 6, 7. MODALS MATERI, CARA, AUDIO, SOAL
+    =========================================== -->
+    <div id="modal-materi" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel max-w-4xl w-full max-h-[88vh] rounded-3xl p-5 sm:p-7 border-2 border-amber-400/60 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-earth-americas"></i></span>
+                    <div>
+                        <h3 class="font-game text-xl sm:text-2xl text-amber-300">RINGKASAN MATERI IPAS KELAS VI SD</h3>
+                        <p class="text-xs text-slate-300">Rotasi dan Revolusi Bumi</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-materi')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-white font-bold">✕</button>
+            </div>
+            <div class="overflow-y-auto space-y-4 pr-2 text-sm text-slate-200 leading-relaxed">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-900/90 border-2 border-sky-500/50 rounded-2xl p-4 space-y-2.5">
+                        <div class="inline-block bg-sky-500/20 text-sky-300 font-game font-bold px-3 py-1 rounded-lg text-base">1. ROTASI BUMI 🌍🔄</div>
+                        <p><strong>Pengertian:</strong> Perputaran Bumi pada porosnya dari Barat ke Timur.</p>
+                        <p><strong>Waktu:</strong> 24 jam. Menyebabkan siang & malam, gerak semu harian, dan perbedaan waktu.</p>
+                    </div>
+                    <div class="bg-slate-900/90 border-2 border-amber-500/50 rounded-2xl p-4 space-y-2.5">
+                        <div class="inline-block bg-amber-500/20 text-amber-300 font-game font-bold px-3 py-1 rounded-lg text-base">2. REVOLUSI BUMI ☀️🌍</div>
+                        <p><strong>Pengertian:</strong> Perputaran Bumi mengelilingi Matahari.</p>
+                        <p><strong>Waktu:</strong> 365¼ hari. Menyebabkan pergantian musim dan tahun kabisat (366 hari, tiap 4 tahun).</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-cara" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel max-w-2xl w-full rounded-3xl p-5 sm:p-7 border-2 border-sky-400/60 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <h3 class="font-game text-xl sm:text-2xl text-sky-300"><i class="fa-solid fa-gamepad mr-2"></i>CARA BERMAIN</h3>
+                <button onclick="closeModal('modal-cara')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-white font-bold">✕</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm text-slate-200">
+                <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-700 space-y-1.5">
+                    <div class="font-game text-amber-300 text-base">1. Kontrol</div>
+                    <p>• WASD/Panah = Lari, Spasi/Lompat = Lompat.<br>• Dekati telur lawan lalu tekan AMBIL.</p>
+                </div>
+                <div class="bg-slate-900/90 p-3.5 rounded-2xl border border-slate-700 space-y-1.5">
+                    <div class="font-game text-emerald-300 text-base">2. Mencuri Telur</div>
+                    <p>• Jawab soal dalam 15 detik. Jika BENAR, bawa telur lari ke markas asalmu untuk mencetak poin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-audio" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-3xl p-6 border-2 border-emerald-400/60 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <h3 class="font-game text-xl text-emerald-300"><i class="fa-solid fa-music mr-2"></i>AUDIO</h3>
+                <button onclick="closeModal('modal-audio')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-white font-bold">✕</button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between bg-slate-900 p-3.5 rounded-2xl border border-slate-700">
+                    <span class="font-bold text-sm">Suara Utama</span>
+                    <button id="btn-toggle-mute" onclick="toggleMuteAudio()" class="btn-roblox bg-emerald-500 text-slate-950 font-game font-bold px-4 py-1.5 rounded-xl text-sm">AKTIF 🔊</button>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1"><span>BGM</span><span id="lbl-bgm-vol">60%</span></div>
+                    <input id="slider-bgm" type="range" min="0" max="100" value="60" oninput="updateAudioSettings()" class="w-full accent-emerald-400">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs font-bold mb-1"><span>SFX</span><span id="lbl-sfx-vol">85%</span></div>
+                    <input id="slider-sfx" type="range" min="0" max="100" value="85" oninput="updateAudioSettings()" class="w-full accent-amber-400">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-soal" class="fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel max-w-5xl w-full max-h-[90vh] rounded-3xl p-5 sm:p-7 border-2 border-emerald-400/70 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center text-xl font-bold"><i class="fa-solid fa-clipboard-question"></i></span>
+                    <div>
+                        <h3 class="font-game text-xl sm:text-2xl text-emerald-300">SOAL IPAS & KUNCI</h3>
+                    </div>
+                </div>
+                <button onclick="closeModal('modal-soal')" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-white font-bold">✕</button>
+            </div>
+            <div class="overflow-y-auto space-y-5 pr-2 text-xs sm:text-sm text-slate-200">
+                <div id="modal-soal-list" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         8. JAVASCRIPT GAME LOGIC & THREE.JS
+    =========================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Questions Data
+        const MASTER_IPAS_QUESTIONS = [
+            { num: 1, q: "1. Gerakan Bumi yang berputar pada porosnya disebut ....", options: ["A. Revolusi", "B. Rotasi", "C. Gravitasi", "D. Orbit"], ans: 1, exp: "Rotasi adalah putaran Bumi pada porosnya." },
+            { num: 2, q: "2. Waktu yang dibutuhkan Bumi untuk melakukan satu kali rotasi adalah ....", options: ["A. 12 jam", "B. 24 jam", "C. 30 hari", "D. 365 hari"], ans: 1, exp: "Satu rotasi memakan waktu 24 jam." },
+            { num: 3, q: "3. Peristiwa alam akibat rotasi Bumi adalah ....", options: ["A. Pergantian musim", "B. Siang dan malam", "C. Terjadinya hujan", "D. Perubahan bentuk Bulan"], ans: 1, exp: "Rotasi menyebabkan siang dan malam." },
+            { num: 4, q: "4. Bagian Bumi yang menghadap Matahari akan mengalami ....", options: ["A. Malam", "B. Musim dingin", "C. Siang", "D. Hujan"], ans: 2, exp: "Tercerahkan oleh matahari artinya siang hari." },
+            { num: 5, q: "5. Malam hari terjadi karena ....", options: ["A. Bumi berhenti berputar", "B. Wilayah membelakangi Matahari", "C. Matahari padam", "D. Gerhana"], ans: 1, exp: "Malam terjadi saat wilayah membelakangi Matahari." },
+            { num: 6, q: "6. Gerakan Bumi mengelilingi Matahari disebut ....", options: ["A. Rotasi", "B. Revolusi", "C. Gravitasi", "D. Orbit"], ans: 1, exp: "Revolusi adalah gerak mengelilingi Matahari." },
+            { num: 7, q: "7. Waktu untuk satu revolusi Bumi adalah ....", options: ["A. 24 jam", "B. 30 hari", "C. 180 hari", "D. 365¼ hari"], ans: 3, exp: "Revolusi Bumi memakan waktu sekitar 365¼ hari." },
+            { num: 8, q: "8. Peristiwa akibat revolusi Bumi adalah ....", options: ["A. Pergantian musim", "B. Siang dan malam", "C. Perbedaan waktu", "D. Terbit Matahari"], ans: 0, exp: "Revolusi Bumi menyebabkan pergantian musim." },
+            { num: 9, q: "9. Empat musim di negara subtropis adalah ....", options: ["A. Hujan, kemarau, panas, dingin", "B. Semi, panas, gugur, dingin", "C. Hujan, badai, panas, dingin", "D. Salju, badai, panas, gugur"], ans: 1, exp: "Empat musim: Semi, Panas, Gugur, Dingin." },
+            { num: 10, q: "10. Indonesia mengalami dua musim, yaitu ....", options: ["A. Semi & gugur", "B. Panas & dingin", "C. Hujan & kemarau", "D. Salju & hujan"], ans: 2, exp: "Indonesia beriklim tropis: hujan & kemarau." },
+            { num: 11, q: "11. Perbedaan waktu (WIB, WITA, WIT) akibat dari ....", options: ["A. Rotasi Bumi", "B. Revolusi Bumi", "C. Pergantian musim", "D. Gerhana"], ans: 0, exp: "Perbedaan waktu disebabkan rotasi Bumi." },
+            { num: 12, q: "12. Matahari tampak terbit dari arah ....", options: ["A. Barat", "B. Utara", "C. Selatan", "D. Timur"], ans: 3, exp: "Karena rotasi, matahari terbit di timur." },
+            { num: 13, q: "13. Pergantian musim terjadi karena ....", options: ["A. Rotasi", "B. Bulan mengelilingi Bumi", "C. Revolusi dan sumbu miring", "D. Gerhana"], ans: 2, exp: "Revolusi dan kemiringan sumbu menyebabkan musim." },
+            { num: 14, q: "14. Tanpa rotasi, yang terganggu adalah ....", options: ["A. Siang & malam", "B. Pergantian tahun", "C. Musim", "D. Bentuk awan"], ans: 0, exp: "Siklus siang malam bergantung pada rotasi." },
+            { num: 15, q: "15. Perbedaan rotasi dan revolusi adalah ....", options: ["A. Sama saja", "B. Rotasi = musim, Revolusi = siang", "C. Rotasi = pada poros, Revolusi = keliling matahari", "D. Keduanya = pada poros"], ans: 2, exp: "Rotasi pada porosnya, revolusi mengelilingi matahari." }
+        ];
+
+        // Sound System
+        class SoundManager {
+            constructor() { this.ctx=null; this.muted=false; this.bgmVolume=0.6; this.sfxVolume=0.85; this.stepIndex=0; }
+            init() { if(!this.ctx){ const A=window.AudioContext||window.webkitAudioContext; if(A)this.ctx=new A(); } if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume(); }
+            playTone(freq, type='sine', dur=0.18, vol=0.3, slideFreq=null) {
+                if(this.muted)return; this.init(); if(!this.ctx)return;
+                try{ const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type=type; o.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if(slideFreq) o.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime+dur);
+                g.gain.setValueAtTime(Math.max(0.001,vol*this.sfxVolume), this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime+dur);
+                o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+dur); }catch(e){}
+            }
+            playJump() { this.playTone(260, 'triangle', 0.22, 0.35, 580); }
+            playPickupEgg() { this.playTone(523.25, 'sine', 0.12, 0.4); setTimeout(()=>this.playTone(659.25, 'sine', 0.15, 0.4), 90); }
+            playCorrect() { [523.25, 659.25, 783.99, 1046.5].forEach((n,i)=>setTimeout(()=>this.playTone(n,'triangle',0.22,0.45),i*95)); }
+            playWrong() { this.playTone(220, 'sawtooth', 0.25, 0.35, 150); setTimeout(()=>this.playTone(160, 'sawtooth', 0.35, 0.35, 110), 220); }
+            playScoreDelivered() { [587.33, 783.99, 987.77, 1174.66].forEach((n,i)=>setTimeout(()=>this.playTone(n,'square',0.25,0.35),i*110)); }
+            playTagAlert() { this.playTone(680, 'sawtooth', 0.15, 0.4, 240); }
+            playWarningBeep() { this.playTone(880, 'square', 0.15, 0.3); setTimeout(()=>this.playTone(880, 'square', 0.2, 0.3), 200); }
+            startBGM() {
+                if(this.bgmInterval)return;
+                const m=[261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 349.23, 440.00, 587.33, 440.00, 349.23, 329.63, 392.00, 493.88, 659.25, 587.33, 523.25, 392.00, 329.63, 293.66, 392.00, 523.25, 0];
+                this.bgmInterval=setInterval(()=>{
+                    if(this.muted || !gameState.inMatch || this.bgmVolume<=0.01)return; this.init(); if(!this.ctx)return;
+                    const f=m[this.stepIndex%m.length]; this.stepIndex++;
+                    if(f>0) { try{ const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(f, this.ctx.currentTime); g.gain.setValueAtTime(0.08*this.bgmVolume, this.ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime+0.28); o.connect(g); g.connect(this.ctx.destination); o.start(); o.stop(this.ctx.currentTime+0.28); }catch(e){} }
+                }, 310);
+            }
+            stopBGM() { if(this.bgmInterval) clearInterval(this.bgmInterval); this.bgmInterval=null; }
+        }
+        const sound = new SoundManager();
+
+        // Game State
+        const gameState = {
+            inMatch: false, viewMode: 'split', blueAutoPilot: false,
+            playerName: 'Kapten Bumi', playerTeam: 'red', roomCode: 'KELAS6', botMode: 'full',
+            matchSecondsLeft: 600, oneMinuteWarned: false, quizOpen: false, quizActor: null, quizEggTarget: null, quizTimerVal: 15, quizInterval: null,
+            stats: { redCorrect: 0, redWrong: 0, blueCorrect: 0, blueWrong: 0, myCorrect: 0, myWrong: 0 },
+            eggs: []
+        };
+
+        const keys = {}; const joystickRed = {x:0,y:0}; const joystickBlue = {x:0,y:0}; const dpadRed = {x:0,y:0}; const dpadBlue = {x:0,y:0};
+        let cameraYaw = -Math.PI/2, cameraYawBlue = Math.PI/2, cameraPitch = 0.42;
+        let isDraggingCamera = false, dragSide = 'left', prevPointer = {x:0,y:0};
+
+        window.setConsoleDir = function(team, dx, dz) { if(team==='red'){dpadRed.x=dx; dpadRed.y=dz;}else{dpadBlue.x=dx; dpadBlue.y=dz; gameState.blueAutoPilot=false;} };
+        window.addEventListener('keydown', e=>{ keys[e.code]=true; if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyK','KeyL','Enter'].includes(e.code)) gameState.blueAutoPilot=false; if(!gameState.inMatch || gameState.quizOpen)return; if(e.code==='Space')triggerJump('red'); if(e.code==='Enter'||e.code==='ShiftRight')triggerJump('blue'); if(e.code==='KeyE')triggerEggInteraction('red'); if(e.code==='KeyK')triggerEggInteraction('blue'); if(e.code==='KeyF')triggerTagThief('red'); if(e.code==='KeyL')triggerTagThief('blue'); });
+        window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+        // Three.js Core
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0b1120');
+        scene.fog = new THREE.Fog('#0b1120', 30, 180);
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const cameraBlue = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+        
+        let renderer;
+        try {
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+        } catch (e) {
+            console.error("WebGL Context Error:", e);
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:#0b1120;color:#ef4444;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;padding:20px;text-align:center;font-family:sans-serif;";
+            errDiv.innerHTML = "<h2 style='font-size:2rem;font-weight:bold;margin-bottom:10px;'>⚠️ WebGL Tidak Didukung</h2><p style='color:#cbd5e1;max-width:600px;'>Browser atau perangkat keras Anda saat ini tidak mendukung pembuatan grafik 3D (WebGL). Harap aktifkan Akselerasi Perangkat Keras di browser Anda.</p>";
+            document.body.appendChild(errDiv);
+        }
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xfffaed, 1.0);
+        dirLight.position.set(40, 60, 30);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        // Map Setup
+        let localPlayer = null, localPlayerBlue = null, aiBots = [], obstacles = [], bushes = [], earthGlobeMesh = null, moonOrbitGroup = null;
+
+        function buildArena3D() {
+            // Ground
+            const groundGeo = new THREE.PlaneGeometry(240, 120);
+            const groundMat = new THREE.MeshLambertMaterial({color: 0x1a401a}); // Dark Green Base
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // River
+            const riverGeo = new THREE.PlaneGeometry(16, 120);
+            const riverMat = new THREE.MeshBasicMaterial({color: 0x0ea5e9, transparent: true, opacity: 0.8});
+            const river = new THREE.Mesh(riverGeo, riverMat);
+            river.rotation.x = -Math.PI / 2;
+            river.position.y = 0.1;
+            scene.add(river);
+
+            // Bridges
+            const bridgeGeo = new THREE.BoxGeometry(18, 0.4, 10);
+            const bridgeMat = new THREE.MeshLambertMaterial({color: 0xd97706});
+            [-36, 0, 36].forEach(z => {
+                const b = new THREE.Mesh(bridgeGeo, bridgeMat);
+                b.position.set(0, 0.2, z);
+                b.castShadow = true;
+                b.receiveShadow = true;
+                scene.add(b);
+            });
+
+            // Bases (Red / Blue mats)
+            const baseGeo = new THREE.BoxGeometry(40, 0.2, 80);
+            const redBaseMat = new THREE.MeshLambertMaterial({color: 0x991b1b});
+            const redBase = new THREE.Mesh(baseGeo, redBaseMat);
+            redBase.position.set(-80, 0.1, 0);
+            scene.add(redBase);
+
+            const blueBaseMat = new THREE.MeshLambertMaterial({color: 0x1e3a8a});
+            const blueBase = new THREE.Mesh(baseGeo, blueBaseMat);
+            blueBase.position.set(80, 0.1, 0);
+            scene.add(blueBase);
+
+            // Obstacles & Bushes arrays setup
+            obstacles.push({ minX: -15, maxX: 15, minZ: -10, maxZ: 10, maxY: 5 }); // Center Island concept (if added later)
+            bushes.push({ x: 20, z: 25, radius: 6 }, { x: -20, z: -25, radius: 6 }, { x: 30, z: -15, radius: 6 }, { x: -30, z: 15, radius: 6 });
+
+            // Decorate bushes
+            const bushGeo = new THREE.DodecahedronGeometry(6);
+            const bushMat = new THREE.MeshLambertMaterial({color: 0x166534});
+            bushes.forEach(b => {
+                const mesh = new THREE.Mesh(bushGeo, bushMat);
+                mesh.position.set(b.x, 3, b.z);
+                mesh.castShadow = true;
+                scene.add(mesh);
+            });
+
+            // Giant Decorative Earth & Moon in Background
+            earthGlobeMesh = new THREE.Mesh(new THREE.SphereGeometry(30, 32, 32), new THREE.MeshLambertMaterial({color: 0x3b82f6, wireframe: true}));
+            earthGlobeMesh.position.set(0, -10, -120);
+            scene.add(earthGlobeMesh);
+            moonOrbitGroup = new THREE.Group();
+            moonOrbitGroup.position.set(0, -10, -120);
+            const moon = new THREE.Mesh(new THREE.SphereGeometry(6, 16, 16), new THREE.MeshLambertMaterial({color: 0x94a3b8}));
+            moon.position.set(45, 0, 0);
+            moonOrbitGroup.add(moon);
+            scene.add(moonOrbitGroup);
+        }
+
+        function createCharacterMesh(colorHex) {
+            const group = new THREE.Group();
+            const mat = new THREE.MeshLambertMaterial({ color: colorHex });
+            
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), mat);
+            head.position.y = 2.6; head.castShadow = true;
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.6, 0.8), mat);
+            torso.position.y = 1.2; torso.castShadow = true;
+            const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.6, 0.6), mat);
+            leftArm.position.set(-1, 1.2, 0); leftArm.castShadow = true;
+            const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.6, 0.6), mat);
+            rightArm.position.set(1, 1.2, 0); rightArm.castShadow = true;
+            const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.6, 0.65), new THREE.MeshLambertMaterial({color: 0x333333}));
+            leftLeg.position.set(-0.4, -0.4, 0); leftLeg.castShadow = true;
+            const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.65, 1.6, 0.65), new THREE.MeshLambertMaterial({color: 0x333333}));
+            rightLeg.position.set(0.4, -0.4, 0); rightLeg.castShadow = true;
+
+            const shieldMesh = new THREE.Mesh(new THREE.SphereGeometry(2, 16, 16), new THREE.MeshBasicMaterial({color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3}));
+            shieldMesh.position.y = 1; shieldMesh.visible = false;
+
+            const carryEggMesh = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), new THREE.MeshLambertMaterial({color: 0xffffff}));
+            carryEggMesh.position.y = 4.2; carryEggMesh.visible = false;
+
+            group.add(head, torso, leftArm, rightArm, leftLeg, rightLeg, shieldMesh, carryEggMesh);
+            return { group, torso, leftArm, rightArm, leftLeg, rightLeg, shieldMesh, carryEggMesh };
+        }
+
+        function spawnAll30Eggs() {
+            gameState.eggs.forEach(e => { scene.remove(e.group); });
+            gameState.eggs = [];
+            const eggGeo = new THREE.SphereGeometry(0.8, 16, 16);
+            const redEggMat = new THREE.MeshLambertMaterial({color: 0xfca5a5});
+            const blueEggMat = new THREE.MeshLambertMaterial({color: 0x7dd3fc});
+
+            for (let i = 1; i <= 30; i++) {
+                const isRed = i <= 15;
+                const team = isRed ? 'red' : 'blue';
+                const mat = isRed ? redEggMat : blueEggMat;
+                const num = isRed ? i : i - 15;
+                const xBase = isRed ? -75 : 75;
+                const homeX = xBase + ((num-1) % 5) * 4;
+                const homeZ = -15 + Math.floor((num-1) / 5) * 8;
+                
+                const group = new THREE.Group();
+                const mesh = new THREE.Mesh(eggGeo, mat);
+                mesh.castShadow = true;
+                group.add(mesh);
+                group.position.set(homeX, 1.5, homeZ);
+                scene.add(group);
+
+                gameState.eggs.push({
+                    num: num, team: team, status: 'home', homeX: homeX, homeY: 1.5, homeZ: homeZ,
+                    cooldownUntil: 0, questionData: MASTER_IPAS_QUESTIONS[num - 1], group: group, mesh: mesh, carrier: null
+                });
+            }
+        }
+
+        function spawnPlayersAndBots() {
+            if (localPlayer) scene.remove(localPlayer.mesh);
+            if (localPlayerBlue) scene.remove(localPlayerBlue.mesh);
+            aiBots.forEach(b => scene.remove(b.mesh));
+            aiBots = [];
+
+            const p1Obj = createCharacterMesh(0xef4444);
+            localPlayer = { id: 'p1', name: gameState.playerName, team: 'red', mesh: p1Obj.group, charObj: p1Obj, vy: 0, isGrounded: true, carryingEgg: null, shieldUntil: 0, inBush: false };
+            localPlayer.mesh.position.set(-65, 0, 0);
+            scene.add(localPlayer.mesh);
+
+            const p2Obj = createCharacterMesh(0x0ea5e9);
+            localPlayerBlue = { id: 'p2', name: 'Kapten Biru', team: 'blue', mesh: p2Obj.group, charObj: p2Obj, vy: 0, isGrounded: true, carryingEgg: null, shieldUntil: 0, inBush: false };
+            localPlayerBlue.mesh.position.set(65, 0, 0);
+            scene.add(localPlayerBlue.mesh);
+
+            if (gameState.botMode === 'full') {
+                const b1Obj = createCharacterMesh(0xb91c1c);
+                const botRed = { id: 'b1', name: 'Penjaga Merah', team: 'red', role: 'defender', mesh: b1Obj.group, charObj: b1Obj, vy: 0, isGrounded: true, carryingEgg: null, targetEgg: null, shieldUntil: 0 };
+                botRed.mesh.position.set(-50, 0, -10); scene.add(botRed.mesh); aiBots.push(botRed);
+
+                const b2Obj = createCharacterMesh(0x0284c7);
+                const botBlue = { id: 'b2', name: 'Penyusup Biru', team: 'blue', role: 'attacker', mesh: b2Obj.group, charObj: b2Obj, vy: 0, isGrounded: true, carryingEgg: null, targetEgg: null, shieldUntil: 0 };
+                botBlue.mesh.position.set(50, 0, 10); scene.add(botBlue.mesh); aiBots.push(botBlue);
+            }
+        }
+
+        // Logic Helpers
+        function getActorByTeam(teamArg) {
+            if (teamArg === 'blue' && localPlayerBlue) return localPlayerBlue;
+            if (teamArg === 'red' && localPlayer) return localPlayer;
+            return gameState.playerTeam === 'blue' ? localPlayerBlue : localPlayer;
+        }
+
+        function checkObstacleCollision(nx, nz, charY) {
+            if (nx < -115 || nx > 115 || nz < -56 || nz > 56) return true; // Bounds
+            if (nx > -8 && nx < 8) { // River Check
+                const onBridge = Math.abs(nz + 36) < 6 || Math.abs(nz) < 6 || Math.abs(nz - 36) < 6;
+                if (!onBridge && charY < 1.2) return true;
+            }
+            return false;
+        }
+
+        function animateRobloxLimbs(charObj, isMoving, isCarrying, dt) {
+            const t = performance.now() * 0.012;
+            if (isMoving) {
+                charObj.leftArm.rotation.x = Math.sin(t) * 0.75;
+                charObj.rightArm.rotation.x = -Math.sin(t) * 0.75;
+                charObj.leftLeg.rotation.x = -Math.sin(t) * 0.75;
+                charObj.rightLeg.rotation.x = Math.sin(t) * 0.75;
+            } else {
+                charObj.leftArm.rotation.x = 0; charObj.rightArm.rotation.x = 0; charObj.leftLeg.rotation.x = 0; charObj.rightLeg.rotation.x = 0;
+            }
+            if (isCarrying) charObj.rightArm.rotation.x = -1.5;
+        }
+
+        function stepHeroPhysics(hero, moveX, moveZ, yaw, dt) {
+            const len = Math.hypot(moveX, moveZ);
+            const isMoving = len > 0.08;
+            if (len > 1) { moveX /= len; moveZ /= len; }
+
+            const speed = hero.carryingEgg ? 16.5 : 21.0;
+            const forwardX = -Math.sin(yaw), forwardZ = -Math.cos(yaw);
+            const rightX = Math.cos(yaw), rightZ = -Math.sin(yaw);
+            const worldDX = (forwardX * (-moveZ) + rightX * moveX) * speed * dt;
+            const worldDZ = (forwardZ * (-moveZ) + rightZ * moveX) * speed * dt;
+
+            const pos = hero.mesh.position;
+            if (!checkObstacleCollision(pos.x + worldDX, pos.z, pos.y)) pos.x += worldDX;
+            if (!checkObstacleCollision(pos.x, pos.z + worldDZ, pos.y)) pos.z += worldDZ;
+            if (isMoving) hero.mesh.rotation.y = Math.atan2(worldDX, worldDZ);
+
+            hero.vy -= 38 * dt; // Gravity
+            pos.y += hero.vy * dt;
+            if (pos.y <= 0) { pos.y = 0; hero.vy = 0; hero.isGrounded = true; }
+
+            hero.inBush = bushes.some(b => Math.hypot(pos.x - b.x, pos.z - b.z) < b.radius);
+            hero.charObj.torso.material.transparent = hero.inBush;
+            hero.charObj.torso.material.opacity = hero.inBush ? 0.45 : 1.0;
+
+            const now = Date.now();
+            const hasShield = now < hero.shieldUntil;
+            hero.charObj.shieldMesh.visible = hasShield;
+            
+            if (hero === localPlayer) {
+                const shieldBadge = document.getElementById('shield-badge');
+                if (shieldBadge) {
+                    shieldBadge.classList.toggle('hidden', !hasShield);
+                    if (hasShield) document.getElementById('shield-time').textContent = Math.ceil((hero.shieldUntil - now)/1000);
+                }
+            }
+            animateRobloxLimbs(hero.charObj, isMoving, Boolean(hero.carryingEgg), dt);
+            
+            // Check Safe Zone Deposit
+            if (hero.carryingEgg) {
+                const homeTarget = hero.team === 'red' ? -80 : 80;
+                if (Math.abs(pos.x - homeTarget) < 18) {
+                    const cap = hero.carryingEgg;
+                    hero.carryingEgg = null;
+                    hero.charObj.carryEggMesh.visible = false;
+                    placeEggInCapturedZone(cap);
+                    sound.playScoreDelivered();
+                    showLiveToast(`🚩 ${hero.name} berhasil membawa pulang Telur #${cap.num}!`);
+                    updateScoreboardHUD();
+                }
+            }
+        }
+
+        function updateBlueCaptainAutoPilot(bot, dt) {
+            let isMoving = false;
+            if (bot.carryingEgg) {
+                isMoving = moveBotTowards(bot, 80, 0, 16.0, dt);
+                if (Math.abs(bot.mesh.position.x - 80) < 10) {
+                    const cap = bot.carryingEgg;
+                    bot.carryingEgg = null; bot.charObj.carryEggMesh.visible = false;
+                    placeEggInCapturedZone(cap); sound.playScoreDelivered();
+                    showLiveToast(`🚩 ${bot.name} (Auto) membawa pulang Telur #${cap.num}!`);
+                    updateScoreboardHUD();
+                }
+            } else {
+                if (!bot.targetEgg || bot.targetEgg.status !== 'home') {
+                    const avail = gameState.eggs.filter(e => e.team === 'red' && e.status === 'home');
+                    bot.targetEgg = avail.length > 0 ? avail[Math.floor(Math.random() * avail.length)] : null;
+                }
+                if (bot.targetEgg) {
+                    isMoving = moveBotTowards(bot, bot.targetEgg.homeX, bot.targetEgg.homeZ, 16.0, dt);
+                    if (Math.hypot(bot.mesh.position.x - bot.targetEgg.homeX, bot.mesh.position.z - bot.targetEgg.homeZ) < 3) {
+                        if (Math.random() < 0.8) {
+                            gameState.stats.blueCorrect++; bot.carryingEgg = bot.targetEgg; bot.targetEgg.status = 'carried'; bot.targetEgg.carrier = bot; bot.targetEgg.group.visible = false; bot.charObj.carryEggMesh.visible = true; bot.charObj.carryEggMesh.material = bot.targetEgg.mesh.material;
+                        } else {
+                            gameState.stats.blueWrong++; bot.targetEgg = null; respawnEntityAtBase(bot);
+                        }
+                        updateScoreboardHUD();
+                    }
+                }
+            }
+            bot.vy -= 38 * dt; bot.mesh.position.y += bot.vy * dt;
+            if (bot.mesh.position.y <= 0) { bot.mesh.position.y = 0; bot.vy = 0; bot.isGrounded = true; }
+            animateRobloxLimbs(bot.charObj, isMoving, Boolean(bot.carryingEgg), dt);
+        }
+
+        function moveBotTowards(bot, tx, tz, speed, dt) {
+            const pos = bot.mesh.position;
+            let goalX = tx, goalZ = tz;
+            if ((pos.x < -8 && tx > 8) || (pos.x > 8 && tx < -8)) {
+                let bestB = 0, bestDist = 999;
+                [-36, 0, 36].forEach(bz => { const d = Math.abs(pos.z - bz); if(d < bestDist){bestDist = d; bestB = bz;} });
+                if (Math.abs(pos.z - bestB) > 4) { goalX = pos.x; goalZ = bestB; }
+            }
+            const dx = goalX - pos.x, dz = goalZ - pos.z, dist = Math.hypot(dx, dz);
+            if (dist < 0.5) return false;
+            const vx = (dx/dist)*speed*dt, vz = (dz/dist)*speed*dt;
+            if (!checkObstacleCollision(pos.x+vx, pos.z, pos.y)) pos.x += vx;
+            if (!checkObstacleCollision(pos.x, pos.z+vz, pos.y)) pos.z += vz;
+            bot.mesh.rotation.y = Math.atan2(vx, vz);
+            return true;
+        }
+
+        function findNearestStealableEggFor(actor) {
+            if(!actor || actor.carryingEgg) return null;
+            const enemy = actor.team === 'red' ? 'blue' : 'red';
+            let nearest = null, minDist = 6.2;
+            gameState.eggs.forEach(e => {
+                if(e.team === enemy && e.status === 'home' && Date.now() >= e.cooldownUntil) {
+                    const d = Math.hypot(actor.mesh.position.x - e.homeX, actor.mesh.position.z - e.homeZ);
+                    if(d < minDist) { minDist = d; nearest = e; }
+                }
+            });
+            return nearest;
+        }
+
+        function findNearestEnemyThiefFor(actor) {
+            if(!actor) return null;
+            let nearest = null, minDist = 6.8;
+            const candidates = [localPlayer, localPlayerBlue, ...aiBots].filter(Boolean);
+            candidates.forEach(other => {
+                if(other.team !== actor.team && other.carryingEgg && Date.now() >= (other.shieldUntil || 0)) {
+                    const d = Math.hypot(actor.mesh.position.x - other.mesh.position.x, actor.mesh.position.z - other.mesh.position.z);
+                    if(d < minDist) { minDist = d; nearest = other; }
+                }
+            });
+            return nearest;
+        }
+
+        function returnEggToHomePedestal(egg) {
+            egg.status = 'home'; egg.carrier = null; egg.group.position.set(egg.homeX, egg.homeY, egg.homeZ); egg.group.visible = true;
+        }
+        function placeEggInCapturedZone(egg) {
+            egg.status = 'captured'; egg.carrier = null; egg.group.visible = false;
+        }
+        function respawnEntityAtBase(entity) {
+            if(entity.carryingEgg) { returnEggToHomePedestal(entity.carryingEgg); entity.carryingEgg = null; entity.charObj.carryEggMesh.visible = false; }
+            entity.mesh.position.set(entity.team === 'red' ? -75 : 75, 0, (Math.random()-0.5)*20);
+            entity.shieldUntil = Date.now() + 4500;
+        }
+
+        // Actions
+        window.triggerJump = function(team) { const a = getActorByTeam(team); if(a && a.isGrounded) { a.vy = 14; a.isGrounded = false; sound.playJump(); } };
+        window.triggerEggInteraction = function(team) {
+            if(!gameState.inMatch || gameState.quizOpen) return;
+            const a = getActorByTeam(team); const e = findNearestStealableEggFor(a);
+            if(!e) { showLiveToast("Tidak ada telur lawan di dekatmu!"); return; }
+            openQuizForEgg(e, a);
+        };
+        window.triggerTagThief = function(team) {
+            if(!gameState.inMatch || gameState.quizOpen) return;
+            const a = getActorByTeam(team); const t = findNearestEnemyThiefFor(a);
+            if(t && t.carryingEgg) {
+                const s = t.carryingEgg; sound.playTagAlert();
+                showLiveToast(`🛡️ ${a.name} menangkap ${t.name}! Telur #${s.num} diselamatkan!`);
+                respawnEntityAtBase(t); updateScoreboardHUD();
+            }
+        };
+
+        // Context Prompts & HUD
+        function updateContextualPrompts() {
+            const stealBtn = document.getElementById('prompt-steal-btn'), stealLabel = document.getElementById('prompt-steal-label');
+            const tagBtn = document.getElementById('prompt-tag-btn'), tagLabel = document.getElementById('prompt-tag-label');
+            const carryingBadge = document.getElementById('carrying-badge'), carryingText = document.getElementById('carrying-text');
+
+            let canSteal = false, stealNum = '', stealKey = '';
+            let canTag = false, tagTarget = '', tagKey = '';
+            let isCarry = false, carryMsg = '';
+
+            if (localPlayer) {
+                const s = findNearestStealableEggFor(localPlayer);
+                if (s) { canSteal = true; stealNum = s.num; stealKey = 'E'; }
+                const t = findNearestEnemyThiefFor(localPlayer);
+                if (t) { canTag = true; tagTarget = t.name; tagKey = 'F'; }
+                if (localPlayer.carryingEgg) { isCarry = true; carryMsg = `MEMBAWA TELUR #${localPlayer.carryingEgg.num}! Lari ke Markas Barat!`; }
+            }
+            if (localPlayerBlue) {
+                if (!canSteal) { const s = findNearestStealableEggFor(localPlayerBlue); if (s) { canSteal = true; stealNum = s.num; stealKey = 'K'; } }
+                if (!canTag) { const t = findNearestEnemyThiefFor(localPlayerBlue); if (t) { canTag = true; tagTarget = t.name; tagKey = 'L'; } }
+                if (!isCarry && localPlayerBlue.carryingEgg) { isCarry = true; carryMsg = `MEMBAWA TELUR #${localPlayerBlue.carryingEgg.num}! Lari ke Markas Timur!`; }
+            }
+
+            if (stealBtn) stealBtn.classList.toggle('hidden', !canSteal);
+            if (stealLabel && canSteal) stealLabel.textContent = `AMBIL TELUR #${stealNum} (${stealKey})`;
+            if (tagBtn) tagBtn.classList.toggle('hidden', !canTag);
+            if (tagLabel && canTag) tagLabel.textContent = `TANGKAP ${tagTarget.toUpperCase()}! (${tagKey})`;
+            if (carryingBadge) carryingBadge.classList.toggle('hidden', !isCarry);
+            if (carryingText && isCarry) carryingText.textContent = carryMsg;
+        }
+
+        function updateScoreboardHUD() {
+            const redKept = gameState.eggs.filter(e => e.team === 'red' && e.status === 'home').length;
+            const redStolen = gameState.eggs.filter(e => e.team === 'blue' && e.status === 'captured').length;
+            const blueKept = gameState.eggs.filter(e => e.team === 'blue' && e.status === 'home').length;
+            const blueStolen = gameState.eggs.filter(e => e.team === 'red' && e.status === 'captured').length;
+            
+            document.getElementById('hud-red-kept').textContent = redKept; document.getElementById('hud-red-stolen').textContent = redStolen; document.getElementById('hud-red-correct').textContent = gameState.stats.redCorrect; document.getElementById('hud-red-total').textContent = redKept + redStolen;
+            document.getElementById('hud-blue-kept').textContent = blueKept; document.getElementById('hud-blue-stolen').textContent = blueStolen; document.getElementById('hud-blue-correct').textContent = gameState.stats.blueCorrect; document.getElementById('hud-blue-total').textContent = blueKept + blueStolen;
+            document.getElementById('hud-my-correct').textContent = gameState.stats.myCorrect; document.getElementById('hud-my-wrong').textContent = gameState.stats.myWrong;
+        }
+
+        // Radar Map
+        function renderSharedEggRadarMap() {
+            const rc = document.getElementById('shared-radar-canvas');
+            if(!rc) return; const ctx = rc.getContext('2d'); const w = rc.width, h = rc.height;
+            const mapX = (wx) => ((wx + 115) / 230) * w, mapZ = (wz) => ((wz + 60) / 120) * h;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = 'rgba(153, 27, 27, 0.55)'; ctx.fillRect(0, 0, mapX(-32), h);
+            ctx.fillStyle = 'rgba(21, 128, 61, 0.45)'; ctx.fillRect(mapX(-32), 0, mapX(32)-mapX(-32), h);
+            ctx.fillStyle = 'rgba(30, 64, 175, 0.55)'; ctx.fillRect(mapX(32), 0, w-mapX(32), h);
+            ctx.fillStyle = 'rgba(14, 165, 233, 0.65)'; ctx.fillRect(mapX(-8), 0, mapX(8)-mapX(-8), h);
+
+            gameState.eggs.forEach(e => {
+                const ex = e.carrier ? e.carrier.mesh.position.x : e.homeX, ez = e.carrier ? e.carrier.mesh.position.z : e.homeZ;
+                ctx.beginPath(); ctx.arc(mapX(ex), mapZ(ez), e.status === 'carried' ? 3.5 : 2, 0, 7);
+                ctx.fillStyle = e.status === 'carried' ? '#facc15' : (e.team === 'red' ? '#fca5a5' : '#7dd3fc'); ctx.fill();
+            });
+
+            [localPlayer, localPlayerBlue, ...aiBots].filter(Boolean).forEach(a => {
+                ctx.fillStyle = a.team === 'red' ? '#ef4444' : '#0ea5e9';
+                ctx.beginPath(); ctx.arc(mapX(a.mesh.position.x), mapZ(a.mesh.position.z), 4, 0, 7); ctx.fill();
+            });
+        }
+
+        // Main Loop
+        let prevTime = performance.now();
+        function animateLoop(now) {
+            requestAnimationFrame(animateLoop);
+            if (!renderer) return;
+            const dt = Math.min(0.05, (now - prevTime) / 1000);
+            prevTime = now;
+
+            if (earthGlobeMesh) earthGlobeMesh.rotation.y += dt * 0.4;
+            if (moonOrbitGroup) moonOrbitGroup.rotation.y += dt * 0.2;
+
+            if (gameState.inMatch && localPlayer) {
+                let moveX = 0, moveZ = 0;
+                if (!gameState.quizOpen) {
+                    if (keys['KeyW'] || (gameState.viewMode === 'single' && keys['ArrowUp'])) moveZ -= 1;
+                    if (keys['KeyS'] || (gameState.viewMode === 'single' && keys['ArrowDown'])) moveZ += 1;
+                    if (keys['KeyA'] || (gameState.viewMode === 'single' && keys['ArrowLeft'])) moveX -= 1;
+                    if (keys['KeyD'] || (gameState.viewMode === 'single' && keys['ArrowRight'])) moveX += 1;
+                    moveX += joystickRed.x + dpadRed.x; moveZ += joystickRed.y + dpadRed.y;
+                }
+                stepHeroPhysics(localPlayer, moveX, moveZ, cameraYaw, dt);
+
+                if (localPlayerBlue) {
+                    let bx = 0, bz = 0;
+                    if (!gameState.quizOpen) {
+                        if (keys['ArrowUp']) bz -= 1; if (keys['ArrowDown']) bz += 1;
+                        if (keys['ArrowLeft']) bx -= 1; if (keys['ArrowRight']) bx += 1;
+                        bx += joystickBlue.x + dpadBlue.x; bz += joystickBlue.y + dpadBlue.y;
+                    }
+                    if (Math.hypot(bx, bz) > 0.1 || !gameState.blueAutoPilot) stepHeroPhysics(localPlayerBlue, bx, bz, cameraYawBlue, dt);
+                    else updateBlueCaptainAutoPilot(localPlayerBlue, dt);
+                }
+
+                aiBots.forEach(b => {
+                    let m = false;
+                    if (b.role === 'defender') {
+                        let t = findNearestEnemyThiefFor(b);
+                        if(t) { m = moveBotTowards(b, t.mesh.position.x, t.mesh.position.z, 15, dt); if(Math.hypot(b.mesh.position.x-t.mesh.position.x, b.mesh.position.z-t.mesh.position.z)<3) respawnEntityAtBase(t); }
+                        else m = moveBotTowards(b, b.team==='red'? -60:60, Math.sin(now*0.001)*20, 10, dt);
+                    } else {
+                        if (b.carryingEgg) { m = moveBotTowards(b, b.team==='red'? -80:80, 0, 15, dt); if(Math.abs(b.mesh.position.x - (b.team==='red'?-80:80))<5){ placeEggInCapturedZone(b.carryingEgg); b.carryingEgg=null; b.charObj.carryEggMesh.visible=false; } }
+                        else {
+                            if(!b.targetEgg || b.targetEgg.status!=='home') { const a = gameState.eggs.filter(e=>e.team!==b.team&&e.status==='home'); b.targetEgg = a.length>0?a[Math.floor(Math.random()*a.length)]:null; }
+                            if(b.targetEgg) { m = moveBotTowards(b, b.targetEgg.homeX, b.targetEgg.homeZ, 15, dt); if(Math.hypot(b.mesh.position.x-b.targetEgg.homeX, b.mesh.position.z-b.targetEgg.homeZ)<3){ b.carryingEgg=b.targetEgg; b.targetEgg.status='carried'; b.targetEgg.group.visible=false; b.charObj.carryEggMesh.visible=true; } }
+                        }
+                    }
+                    b.vy -= 38*dt; b.mesh.position.y += b.vy*dt; if(b.mesh.position.y<=0){b.mesh.position.y=0; b.vy=0;}
+                    animateRobloxLimbs(b.charObj, m, Boolean(b.carryingEgg), dt);
+                });
+
+                updateContextualPrompts(); renderSharedEggRadarMap();
+
+                // Cameras
+                const pt = (gameState.viewMode === 'single' && gameState.playerTeam === 'blue' && localPlayerBlue) ? localPlayerBlue : localPlayer;
+                const py = pt === localPlayerBlue ? cameraYawBlue : cameraYaw;
+                camera.position.lerp(new THREE.Vector3(pt.mesh.position.x + Math.sin(py)*16.5*Math.cos(cameraPitch), pt.mesh.position.y + 8.5*Math.sin(cameraPitch)+3.5, pt.mesh.position.z + Math.cos(py)*16.5*Math.cos(cameraPitch)), 0.18);
+                camera.lookAt(pt.mesh.position.x, pt.mesh.position.y + 3.2, pt.mesh.position.z);
+
+                if (localPlayerBlue) {
+                    cameraBlue.position.lerp(new THREE.Vector3(localPlayerBlue.mesh.position.x + Math.sin(cameraYawBlue)*16.5*Math.cos(cameraPitch), localPlayerBlue.mesh.position.y + 8.5*Math.sin(cameraPitch)+3.5, localPlayerBlue.mesh.position.z + Math.cos(cameraYawBlue)*16.5*Math.cos(cameraPitch)), 0.18);
+                    cameraBlue.lookAt(localPlayerBlue.mesh.position.x, localPlayerBlue.mesh.position.y + 3.2, localPlayerBlue.mesh.position.z);
+                }
+
+                // Render Pass
+                const w = window.innerWidth, h = window.innerHeight;
+                if (gameState.viewMode === 'split') {
+                    renderer.setScissorTest(true);
+                    const hw = Math.floor(w / 2);
+                    camera.aspect = hw / h; camera.updateProjectionMatrix();
+                    renderer.setViewport(0, 0, hw, h); renderer.setScissor(0, 0, hw, h);
+                    renderer.render(scene, camera);
+
+                    cameraBlue.aspect = (w - hw) / h; cameraBlue.updateProjectionMatrix();
+                    renderer.setViewport(hw, 0, w - hw, h); renderer.setScissor(hw, 0, w - hw, h);
+                    renderer.render(scene, cameraBlue);
+                    renderer.setScissorTest(false);
+                } else {
+                    renderer.setScissorTest(false);
+                    camera.aspect = w / h; camera.updateProjectionMatrix();
+                    renderer.setViewport(0, 0, w, h);
+                    renderer.render(scene, camera);
+                }
+            } else {
+                // Menu Idle Camera
+                renderer.setScissorTest(false);
+                camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+                const mAng = now * 0.0002;
+                camera.position.set(Math.cos(mAng)*80, 35, Math.sin(mAng)*80);
+                camera.lookAt(0, 5, 0);
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Setup Joystick Handlers
+        function setupDualJoystick(zoneId, targetVec, isBlue) {
+            const z = document.getElementById(zoneId), k = z?.querySelector('div:last-child');
+            if(!z || !k) return; let activeId = null;
+            function upd(cx, cy) {
+                const r = z.getBoundingClientRect(), cx2 = r.left+r.width/2, cy2 = r.top+r.height/2, maxR = r.width*0.36;
+                let dx = cx-cx2, dy = cy-cy2, dist = Math.hypot(dx,dy);
+                if(dist>maxR) { dx=(dx/dist)*maxR; dy=(dy/dist)*maxR; }
+                k.style.transform = `translate(${dx}px, ${dy}px)`; targetVec.x = dx/maxR; targetVec.y = dy/maxR;
+                if(isBlue) gameState.blueAutoPilot = false;
+            }
+            z.addEventListener('pointerdown', e=>{ e.stopPropagation(); activeId=e.pointerId; z.setPointerCapture(e.pointerId); upd(e.clientX, e.clientY); });
+            z.addEventListener('pointermove', e=>{ if(e.pointerId===activeId) upd(e.clientX, e.clientY); });
+            z.addEventListener('pointerup', e=>{ if(e.pointerId===activeId){ activeId=null; k.style.transform='translate(0,0)'; targetVec.x=0; targetVec.y=0; }});
+            z.addEventListener('pointercancel', e=>{ if(e.pointerId===activeId){ activeId=null; k.style.transform='translate(0,0)'; targetVec.x=0; targetVec.y=0; }});
+        }
+        setupDualJoystick('joystick-zone-red', joystickRed, false); setupDualJoystick('joystick-zone-blue', joystickBlue, true);
+
+        // UI & Modals & Logic functions
+        let matchClockInterval = null;
+        window.openModal = id => document.getElementById(id).classList.remove('hidden');
+        window.closeModal = id => document.getElementById(id).classList.add('hidden');
+        window.toggleMuteAudio = () => { sound.muted = !sound.muted; document.getElementById('btn-toggle-mute').textContent = sound.muted ? "MUTE 🔇" : "AKTIF 🔊"; };
+        window.updateAudioSettings = () => { sound.bgmVolume = document.getElementById('slider-bgm').value/100; sound.sfxVolume = document.getElementById('slider-sfx').value/100; document.getElementById('lbl-bgm-vol').textContent=document.getElementById('slider-bgm').value+"%"; document.getElementById('lbl-sfx-vol').textContent=document.getElementById('slider-sfx').value+"%"; };
+        window.selectTeam = t => { gameState.playerTeam = t; };
+        window.selectViewMode = m => { gameState.viewMode = m; };
+        window.toggleSplitViewInGame = () => { gameState.viewMode = gameState.viewMode === 'split' ? 'single' : 'split'; document.getElementById('split-screen-frame').classList.toggle('hidden', gameState.viewMode==='single'); };
+        window.toggleBlueAutoPilot = () => { gameState.blueAutoPilot = !gameState.blueAutoPilot; document.getElementById('btn-blue-autopilot').textContent = gameState.blueAutoPilot ? "🤖 Auto-Bot: AKTIF" : "🎮 Konsol 2 Manual"; };
+        
+        let toastTimeout = null;
+        window.showLiveToast = msg => { const el = document.getElementById('live-toast'); el.textContent = msg; el.classList.add('scale-105'); clearTimeout(toastTimeout); toastTimeout = setTimeout(()=>el.classList.remove('scale-105'), 300); };
+        window.toggleFastForwardTimer = () => { if(gameState.matchSecondsLeft>62){gameState.matchSecondsLeft=61;}else{gameState.matchSecondsLeft=1;} };
+        
+        // Quiz System
+        window.openQuizForEgg = function(egg, actor) {
+            gameState.quizOpen = true; gameState.quizActor = actor; gameState.quizEggTarget = egg; gameState.quizTimerVal = 15; sound.playPickupEgg();
+            document.getElementById('quiz-modal').classList.remove('hidden'); document.getElementById('quiz-feedback-box').classList.add('hidden');
+            document.getElementById('quiz-options-grid').classList.remove('pointer-events-none', 'opacity-60');
+            document.getElementById('quiz-egg-title').textContent = `TELUR NOMOR #${egg.num}`;
+            document.getElementById('quiz-question-text').textContent = egg.questionData.q;
+            document.getElementById('quiz-options-grid').innerHTML = egg.questionData.options.map((o,i)=>`<button onclick="submitQuizAnswer(${i})" class="btn-roblox bg-slate-800 text-white p-3.5 rounded-2xl font-bold text-left">${o}</button>`).join('');
+            if(gameState.quizInterval) clearInterval(gameState.quizInterval);
+            gameState.quizInterval = setInterval(()=>{
+                gameState.quizTimerVal--; document.getElementById('quiz-timer-num').textContent = gameState.quizTimerVal; document.getElementById('quiz-timer-bar').style.width = `${(gameState.quizTimerVal/15)*100}%`;
+                if(gameState.quizTimerVal<=0){ clearInterval(gameState.quizInterval); handleQuizTimeout(); }
+            }, 1000);
+        };
+        window.submitQuizAnswer = function(idx) {
+            clearInterval(gameState.quizInterval); document.getElementById('quiz-options-grid').classList.add('pointer-events-none');
+            const egg = gameState.quizEggTarget, act = gameState.quizActor, isCorrect = idx === egg.questionData.ans;
+            const fbBox = document.getElementById('quiz-feedback-box'); fbBox.classList.remove('hidden');
+            if(isCorrect) {
+                sound.playCorrect(); act.team==='red'?gameState.stats.redCorrect++:gameState.stats.blueCorrect++; gameState.stats.myCorrect++;
+                fbBox.className='rounded-2xl p-4 border-2 bg-emerald-950/90 border-emerald-400 text-emerald-300';
+                document.getElementById('quiz-feedback-title').textContent = "✨ BENAR! (+1 POIN) ✨";
+                egg.status='carried'; egg.carrier=act; egg.group.visible=false; act.carryingEgg=egg; act.charObj.carryEggMesh.visible=true; act.charObj.carryEggMesh.material=egg.mesh.material;
+            } else {
+                sound.playWrong(); act.team==='red'?gameState.stats.redWrong++:gameState.stats.blueWrong++; gameState.stats.myWrong++;
+                fbBox.className='rounded-2xl p-4 border-2 bg-rose-950/90 border-rose-400 text-rose-300';
+                document.getElementById('quiz-feedback-title').textContent = "❌ JAWABAN SALAH!";
+                egg.cooldownUntil = Date.now()+4500; returnEggToHomePedestal(egg);
+            }
+            document.getElementById('quiz-feedback-desc').textContent = egg.questionData.exp; updateScoreboardHUD();
+        };
+        function handleQuizTimeout() { submitQuizAnswer(-1); document.getElementById('quiz-feedback-title').textContent = "⏰ WAKTU HABIS!"; }
+        window.closeQuizModal = () => { gameState.quizOpen = false; document.getElementById('quiz-modal').classList.add('hidden'); };
+
+        // Match Lifecycle
+        window.startGameMatch = function() {
+            gameState.playerName = document.getElementById('input-player-name').value || 'Kapten Bumi';
+            gameState.botMode = document.getElementById('select-bot-mode').value;
+            gameState.matchSecondsLeft = 600; gameState.oneMinuteWarned = false; gameState.stats = { redCorrect: 0, redWrong: 0, blueCorrect: 0, blueWrong: 0, myCorrect: 0, myWrong: 0 };
+            
+            spawnAll30Eggs(); spawnPlayersAndBots(); updateScoreboardHUD();
+            document.getElementById('main-menu').classList.add('hidden'); document.getElementById('victory-modal').classList.add('hidden'); document.getElementById('game-hud').classList.remove('hidden');
+            
+            gameState.inMatch = true; sound.init(); sound.startBGM();
+            if(matchClockInterval) clearInterval(matchClockInterval);
+            matchClockInterval = setInterval(()=>{
+                if(!gameState.inMatch) return;
+                gameState.matchSecondsLeft--;
+                document.getElementById('hud-timer').textContent = `${String(Math.floor(gameState.matchSecondsLeft/60)).padStart(2,'0')}:${String(gameState.matchSecondsLeft%60).padStart(2,'0')}`;
+                if(gameState.matchSecondsLeft===60 && !gameState.oneMinuteWarned){ gameState.oneMinuteWarned=true; sound.playWarningBeep(); document.getElementById('one-minute-banner').classList.remove('hidden'); }
+                if(gameState.matchSecondsLeft<=0) { finishMatchAndShowResults(); }
+            }, 1000);
+        };
+
+        function finishMatchAndShowResults() {
+            gameState.inMatch = false; clearInterval(matchClockInterval); if(gameState.quizOpen) closeQuizModal(); sound.stopBGM(); sound.playScoreDelivered();
+            gameState.eggs.forEach(e => { if(e.status==='carried') returnEggToHomePedestal(e); });
+            
+            const rc = gameState.stats.redCorrect, rw = gameState.stats.redWrong, bc = gameState.stats.blueCorrect, bw = gameState.stats.blueWrong;
+            const rs = gameState.eggs.filter(e=>e.team==='red'&&e.status==='home').length + gameState.eggs.filter(e=>e.team==='blue'&&e.status==='captured').length;
+            const bs = gameState.eggs.filter(e=>e.team==='blue'&&e.status==='home').length + gameState.eggs.filter(e=>e.team==='red'&&e.status==='captured').length;
+            
+            document.getElementById('end-red-score').textContent = rs+" Poin"; document.getElementById('end-red-ans').textContent = `${rc} B / ${rw} S`; document.getElementById('end-red-acc').textContent = Math.round(rc/15*100);
+            document.getElementById('end-blue-score').textContent = bs+" Poin"; document.getElementById('end-blue-ans').textContent = `${bc} B / ${bw} S`; document.getElementById('end-blue-acc').textContent = Math.round(bc/15*100);
+            
+            const tit = document.getElementById('victory-winner-title');
+            if(rs>bs) tit.textContent = '🏆 TIM MERAH MENANG! 🏆'; else if(bs>rs) tit.textContent = '🏆 TIM BIRU MENANG! 🏆'; else tit.textContent = (rc>bc)?'🏆 TIM MERAH MENANG (NILAI IPAS)! 🏆':(bc>rc?'🏆 TIM BIRU MENANG (NILAI IPAS)! 🏆':'🤝 IMBANG!');
+            document.getElementById('victory-modal').classList.remove('hidden');
+        }
+
+        window.restartMatch = () => startGameMatch();
+        window.returnToMenu = () => { gameState.inMatch=false; clearInterval(matchClockInterval); sound.stopBGM(); document.getElementById('game-hud').classList.add('hidden'); document.getElementById('victory-modal').classList.add('hidden'); document.getElementById('main-menu').classList.remove('hidden'); };
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        window.onload = function() {
+            document.getElementById('modal-soal-list').innerHTML = MASTER_IPAS_QUESTIONS.map(q=>`<div class="bg-slate-900/90 border border-slate-700 rounded-2xl p-3.5 space-y-2"><div class="font-bold text-white">${q.q}</div><div class="space-y-1 pl-1 text-xs">${q.options.map((o,i)=>`<div class="${i===q.ans?'text-emerald-300 font-bold':'text-slate-300'}">${o}</div>`).join('')}</div></div>`).join('');
+            buildArena3D(); spawnAll30Eggs();
+            animateLoop(performance.now());
+        };
+    </script>
+</body>
+</html>
